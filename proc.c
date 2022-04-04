@@ -209,9 +209,10 @@ fork(void)
     if(curproc->ofile[i])
       np->ofile[i] = filedup(curproc->ofile[i]);
   np->cwd = idup(curproc->cwd);
-  np->sig_mask[i] = curproc->sig_mask[i];
+
   for(i = 0; i <31; i++)
       np->sig_handler[i] = curproc->sig_handler[i];
+      np->sig_mask[i] = curproc->sig_mask[i];
 
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
@@ -219,40 +220,7 @@ fork(void)
   pid = np->pid;
 
   acquire(&ptable.lock);
-struct trapframe2 {
-  // registers as pushed by pusha
-  uint edi;
-  uint esi;
-  uint ebp;
-  uint oesp;      // useless & ignored
-  uint ebx;
-  uint edx;
-  uint ecx;
-  uint eax;
 
-  // rest of trap frame
-  ushort gs;
-  ushort padding1;
-  ushort fs;
-  ushort padding2;
-  ushort es;
-  ushort padding3;
-  ushort ds;
-  ushort padding4;
-  uint trapno;
-
-  // below here defined by x86 hardware
-  uint err;
-  uint eip;
-  ushort cs;
-  ushort padding5;
-  uint eflags;
-
-  // below here only when crossing rings, such as from user to kernel
-  uint esp;
-  ushort ss;
-  ushort padding6;
-};
   np->state = RUNNABLE;
 
   release(&ptable.lock);

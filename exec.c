@@ -99,15 +99,13 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
- 
-  // rusa: set all custom signal handlers to default 
+
+  // rusa: set all custom signal handlers to default
   for(int k = 0; k <= 31; k++){
-  	if(curproc->sig_handler[k] != (void*)SIG_IGN){
+	if(curproc->sig_handler[k] != (void*)SIG_IGN){
 		curproc->sig_handler[k]=(void*)SIG_DFL;
 	}
-  } 
-
-
+  }
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;
