@@ -17,8 +17,8 @@
 #define SIG_DFL 0
 #define SIG_IGN 1
 #define SIGKILL 9
-#define SIGSTOP 17
-#define SIGCONT 19
+#define SIGSTOP 19
+#define SIGCONT 18
 
 
 #define NSIGS        8  // rusa:Number of different signals
