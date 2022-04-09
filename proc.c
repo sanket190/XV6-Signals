@@ -539,3 +539,25 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int sigacation(int sig_no, void *new_Act,void *old_Act){
+	int res = -1;
+	if (old_Act != NULL){
+		// storing the old action funtion address into temp
+		void *temp  = myproc()->sig_handler[sig_no];
+	}
+	if(sig_no !=SIGKILL && sin_no != SIGSTOP))
+	{
+		if(new_Act != NULL){
+			// assing the new action to the given signal number
+			myproc()->sig_handler[sig_np] = new_Act;
+			res =0 ;
+		}
+		if(old_Act != NULL)
+		{
+			old_Act = temp;
+		}
+
+	}
+	return   res;
+}
