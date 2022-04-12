@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include <stddef.h>
 
 struct {
   struct spinlock lock;
@@ -210,9 +211,10 @@ fork(void)
       np->ofile[i] = filedup(curproc->ofile[i]);
   np->cwd = idup(curproc->cwd);
 
-  for(i = 0; i <31; i++)
+  for(i = 0; i <31; i++){
       np->sig_handler[i] = curproc->sig_handler[i];
       np->sig_mask[i] = curproc->sig_mask[i];
+  }
 
 
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
@@ -540,17 +542,18 @@ procdump(void)
   }
 }
 
-int sigacation(int sig_no, void *new_Act,void *old_Act){
+int sigaction(int sig_no, void *new_Act,void *old_Act){
 	int res = -1;
+	void *temp;
 	if (old_Act != NULL){
 		// storing the old action funtion address into temp
-		void *temp  = myproc()->sig_handler[sig_no];
+		temp  = myproc()->sig_handler[sig_no];
 	}
-	if(sig_no !=SIGKILL && sin_no != SIGSTOP))
+	if(sig_no !=SIGKILL && sig_no != SIGSTOP)
 	{
 		if(new_Act != NULL){
 			// assing the new action to the given signal number
-			myproc()->sig_handler[sig_np] = new_Act;
+			myproc()->sig_handler[sig_no] = new_Act;
 			res =0 ;
 		}
 		if(old_Act != NULL)

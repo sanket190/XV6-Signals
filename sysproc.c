@@ -89,25 +89,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
-int sys_sigmaskproc(void)
+
+int sys_sigprocmask(void)
 {
  // yet to made changes
+ return 0;
 }
+
 int sys_sigaction(void)
 {
-	int sig_no;
-	void *new_Act; // for storing the address of new action function
-	void *old_Act; //for storing the address of old action function
-	if(argint(0,&sig_no )< 0){
-		return -1;
-	}
-	if (argprt(1,&new_Act,sizeof(new_Act))<0){
-		return -1;
-	}
-	if (argptr(2,&old_Act,sizeof(old_Act))<0){
-		return -1
-	}
-
-	return sigaction(sin_no,new_Act,old_Act);
+ return 0;
 }
-
