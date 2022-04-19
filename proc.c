@@ -211,6 +211,7 @@ fork(void)
       np->ofile[i] = filedup(curproc->ofile[i]);
   np->cwd = idup(curproc->cwd);
 
+  // inheriting the current process's signal_handler and signal_mask to child process
   for(i = 0; i <31; i++){
       np->sig_handler[i] = curproc->sig_handler[i];
       np->sig_mask[i] = curproc->sig_mask[i];
@@ -569,4 +570,47 @@ int sigaction(int sig_no, void *new_Act,void *old_Act){
 
 	}
 	return   res;
+}
+
+void Signal_handler(){
+	for(int i=0; i<32;i++){
+		if(myproc()->pending_sigs[i] == 1){
+			if (myproc()->sig_handler[i] == (void*)SIG_DFL){
+				if(myproc()->sig_handler[i]==(void*)SIGSTOP ){
+					myproc()->pending_sigs[i] = 0; // removing from the pending signals
+					myproc()->is_proc_stop = 1;
+					// check for any handler is set as SIGKILL or SIGCONT
+					while(myproc()->is_proc_stop==1){
+						for(int k=0;k<32;k++){
+							if((myproc()->pending_sigs[k] == 1) && (myproc()->sig_handler[k]==(void*)SIGCONT)){
+								myproc()->is_proc_stop =0; // making process continue from stop
+								myproc()->pending_sigs[k] =0; // removing from the pending signals
+								return;
+							}
+							if((myproc()->pending_sigs[k] ==1) && (myproc()->sig_handler[k] == (void*)SIGKILL)){
+								//kill the process here
+								myproc()->pending_sigs[k] =0;// removing from the pending signals
+								return;
+							}
+						}
+					}
+				}
+				if(myproc()->sig_handler[i]==(void*)SIGCONT){
+					myproc()->pending_sigs[i] = 0; // removing from the pending signals
+					continue;
+				}
+				if(myproc()->sig_handler[i]==(void*)SIG_IGN){
+					myproc()->pending_sigs[i] = 0; // removing from the pending signals
+					continue;
+				}
+				if(myproc()->sig_handler[i] == (void*)SIGKILL){
+					//kill the process
+					myproc()->pending_sigs[i] = 0; // removing from the pending signals
+				}
+			}
+			else if(myproc()->user_handler==1){
+				  // user handler logic
+				}
+		}
+	}
 }

@@ -102,5 +102,15 @@ int sys_sigprocmask(void)
 
 int sys_sigaction(void)
 {
- return 0;
+  int sig_no;
+  void(*new_act)(int);
+  void(*old_act)(int);
+
+  if(argint(0,&sig_no) <0)
+	return -1;
+  if(argptr(1,(void*)&new_act,sizeof(new_act)) <0)
+	return -1;
+  if(argptr(2,(void*)&old_act,sizeof(old_act)) <0)
+	return -1;
+  return sigaction(sig_no,new_act,old_act);
 }

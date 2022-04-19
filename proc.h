@@ -50,8 +50,10 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint pending_sigs[32];       // rusa: array of pending signals
-  uint sig_mask[32];         // rusa: array of signal mask
-  void* sig_handler[32];    // rusa: signal handlers
+  uint sig_mask[32];           // rusa: array of signal mask
+  void* sig_handler[32];       // rusa: signal handlers
+  int is_proc_stop;            //rusa : for checking the proc is stop or not
+  int user_handler;		//rusa : for usr handler checks
 };
 
 // Process memory is laid out contiguously, low addresses first:
