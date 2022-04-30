@@ -49,11 +49,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  uint pending_sigs[32];       // rusa: array of pending signals
-  uint sig_mask[32];           // rusa: array of signal mask
-  void* sig_handler[32];       // rusa: signal handlers
+  uint pending_sigs[NSIGS];       // rusa: array of pending signals
+  uint sig_mask[NSIGS];           // rusa: array of signal mask
+  void* sig_handler[NSIGS];       // rusa: signal handlers
   int is_proc_stop;            //rusa : for checking the proc is stop or not
   int user_handler;		//rusa : for usr handler checks
+  struct trapframe *backup_tf; // backup trapframe
 };
 
 // Process memory is laid out contiguously, low addresses first:
