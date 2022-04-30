@@ -25,6 +25,5 @@ int main()
 		sleep(5);
 		printf(1,"Test 2 Failed , sigkill cant be blocked\n");
 		exit();
-		
 	}
 }

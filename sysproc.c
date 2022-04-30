@@ -103,8 +103,8 @@ int sys_sigprocmask(void)
 int sys_sigaction(void)
 {
   int sig_no;
-  void(*new_act)(int);
-  void(*old_act)(int);
+  struct sigaction *old_act;
+  struct sigaction *new_act;
 
   if(argint(0,&sig_no) <0)
 	return -1;

@@ -11,9 +11,10 @@ main(int argc, char **argv)
     printf(2, "usage: kill pid...\n");
     exit();
   }
-  for(i=1; i<argc; i=+2){
+  for(i=1; i<argc; i++){
     k=i+1;
     kill(atoi(argv[i]),atoi(argv[k]));
+    i++;
   }
   exit();
 }

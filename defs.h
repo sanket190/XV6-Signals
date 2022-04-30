@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct sigaction;
 
 // bio.c
 void            binit(void);
@@ -186,7 +187,7 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
-int sigaction(int sig_no, void *new_Act,void *old_Act);
+int sigaction(int sig_no, struct sigaction *new_act,struct sigaction *old_act);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

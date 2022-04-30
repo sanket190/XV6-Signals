@@ -6,7 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-#include <stddef.h>
+#include"signal.h"
 
 struct {
   struct spinlock lock;
@@ -91,6 +91,12 @@ found:
   p->pid = nextpid++;
 
   release(&ptable.lock);
+
+  for (int i = 0; i < 32; i++) // initialize handlers
+     p->sig_handler[i] = (void *)SIG_DFL;
+
+  p->is_proc_stop = 0;        // process is not stopped
+  p->user_handler = 1;
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -201,8 +207,6 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
-
-
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -216,8 +220,6 @@ fork(void)
       np->sig_handler[i] = curproc->sig_handler[i];
       np->sig_mask[i] = curproc->sig_mask[i];
   }
-
-
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
@@ -507,7 +509,6 @@ kill(int pid,int sig_no)
 	    }
     }
  }
-
   release(&ptable.lock);
   return -1;
 }
@@ -549,68 +550,89 @@ procdump(void)
   }
 }
 
-int sigaction(int sig_no, void *new_Act,void *old_Act){
+int sigaction(int sig_no, struct sigaction *new_act,struct sigaction *old_act){
 	int res = -1;
 	void *temp;
-	if (old_Act != NULL){
+	if (old_act != NULL){
 		// storing the old action funtion address into temp
 		temp  = myproc()->sig_handler[sig_no];
 	}
-	if(sig_no !=SIGKILL && sig_no != SIGSTOP)
+	if(sig_no != SIGKILL && sig_no != SIGSTOP)
 	{
-		if(new_Act != NULL){
-			// assing the new action to the given signal number
-			myproc()->sig_handler[sig_no] = new_Act;
-			res =0 ;
+		if(new_act != NULL){
+			// assigning the new action to the given signal number
+			myproc()->sig_handler[sig_no] = new_act->sa_handler;
+			res = 0;
 		}
-		if(old_Act != NULL)
+		if(old_act != NULL)
 		{
-			old_Act = temp;
+			old_act->sa_handler = temp;
 		}
 
 	}
-	return   res;
+	return res;
 }
 
-void Signal_handler(){
-	for(int i=0; i<32;i++){
-		if(myproc()->pending_sigs[i] == 1){
-			if (myproc()->sig_handler[i] == (void*)SIG_DFL){
-				if(myproc()->sig_handler[i]==(void*)SIGSTOP ){
-					myproc()->pending_sigs[i] = 0; // removing from the pending signals
-					myproc()->is_proc_stop = 1;
-					// check for any handler is set as SIGKILL or SIGCONT
-					while(myproc()->is_proc_stop==1){
-						for(int k=0;k<32;k++){
-							if((myproc()->pending_sigs[k] == 1) && (myproc()->sig_handler[k]==(void*)SIGCONT)){
-								myproc()->is_proc_stop =0; // making process continue from stop
-								myproc()->pending_sigs[k] =0; // removing from the pending signals
-								return;
-							}
-							if((myproc()->pending_sigs[k] ==1) && (myproc()->sig_handler[k] == (void*)SIGKILL)){
-								//kill the process here
-								myproc()->pending_sigs[k] =0;// removing from the pending signals
-								return;
-							}
-						}
-					}
-				}
-				if(myproc()->sig_handler[i]==(void*)SIGCONT){
-					myproc()->pending_sigs[i] = 0; // removing from the pending signals
-					continue;
-				}
-				if(myproc()->sig_handler[i]==(void*)SIG_IGN){
-					myproc()->pending_sigs[i] = 0; // removing from the pending signals
-					continue;
-				}
-				if(myproc()->sig_handler[i] == (void*)SIGKILL){
-					//kill the process
-					myproc()->pending_sigs[i] = 0; // removing from the pending signals
-				}
-			}
-			else if(myproc()->user_handler==1){
-				  // user handler logic
-				}
-		}
-	}
+void signal_handler()
+{
+  for(int i = 0; i < NSIGS; i++)
+  {
+    if(myproc()->pending_sigs[i] == 1)
+    {
+      if(myproc()->sig_handler[i] == (void *)SIG_DFL)
+      {
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+        continue;
+      }
+      if(i == SIGSTOP)
+      {
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+        myproc()->is_proc_stop = 1;
+        // check for any handler is set as SIGKILL or SIGCONT
+        if(myproc()->is_proc_stop == 1)
+        {
+          for(int k = 0; k < NSIGS; k++)
+          {
+            if((myproc()->pending_sigs[k] == 1) && (k == SIGCONT))
+            {
+              myproc()->is_proc_stop = 0;    // making process continue from stop
+              myproc()->pending_sigs[k] = 0; // removing from the pending signals
+              return;
+            }
+            if((myproc()->pending_sigs[k] == 1) && (k == SIGKILL))
+            {
+              // kill the process here
+              myproc()->pending_sigs[k] = 0; // removing from the pending signals
+              return;
+            }
+          }
+          if(myproc()->is_proc_stop == 1){
+            struct proc *p = myproc();
+            acquire(&ptable.lock);
+            p->state = SLEEPING;
+            release(&ptable.lock);
+            sched();
+          }
+      }
+      if (myproc()->sig_handler[i] == (void *)SIGCONT)
+      {
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+        continue;
+      }
+      if (myproc()->sig_handler[i] == (void *)SIG_IGN)
+      {
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+        continue;
+      }
+      if (myproc()->sig_handler[i] == (void *)SIGKILL)
+      {
+        // kill the process
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+      }
+    }
+    if (myproc()->user_handler == 1)
+    {
+      // user handler logic
+    }
+  }
 }

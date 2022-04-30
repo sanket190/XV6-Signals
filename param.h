@@ -12,7 +12,6 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       1000  // size of file system in blocks
 
-
 // rusa: Signals macro
 #define SIG_DFL 0
 #define SIG_IGN 1
@@ -21,4 +20,4 @@
 #define SIGCONT 18
 
 
-#define NSIGS        8  // rusa:Number of different signals
+#define NSIGS        32  // rusa:Number of different signals
