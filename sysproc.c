@@ -96,8 +96,11 @@ sys_uptime(void)
 
 int sys_sigprocmask(void)
 {
- // yet to made changes
- return 0;
+ int sigmask;
+ if(argint(0,&sigmask) < 0){
+    return -1;
+ }
+ return sigprocmask(sigmask);
 }
 
 int sys_sigaction(void)

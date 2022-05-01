@@ -96,7 +96,7 @@ found:
     p->sig_handler[i] = (void *)SIG_DFL;
 
   p->is_proc_stop = 0; // process is not stopped
-  p->user_handler = 1;
+
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -578,78 +578,30 @@ int sigaction(int sig_no, struct sigaction *new_act, struct sigaction *old_act)
   return res;
 }
 
-void signal_handler()
+uint check_bit(int mask, int position)
 {
-  for (int i = 0; i < NSIGS; i++)
-  {
-    if (myproc()->pending_sigs[i] == 1)
-    {
-      if (myproc()->sig_handler[i] == (void *)SIG_DFL)
-      {
-        myproc()->pending_sigs[i] = 0; // removing from the pending signals
-        if (i == SIGSTOP)
-        {
-          myproc()->pending_sigs[i] = 0; // removing from the pending signals
-          myproc()->is_proc_stop = 1;
-          // check for any handler is set as SIGKILL or SIGCONT
-          if (myproc()->is_proc_stop == 1)
-          {
-            for (int k = 0; k < NSIGS; k++)
-            {
-              if ((myproc()->pending_sigs[k] == 1) && (k == SIGCONT))
-              {
-                myproc()->is_proc_stop = 0;    // making process continue from stop
-                myproc()->pending_sigs[k] = 0; // removing from the pending signals
-                return;
-              }
-              if ((myproc()->pending_sigs[k] == 1) && (k == SIGKILL))
-              {
-                // kill the process here
-                myproc()->pending_sigs[k] = 0; // removing from the pending signals
-                return;
-              }
-            }
-            if (myproc()->is_proc_stop == 1)
-            {
-              struct proc *p = myproc();
-              acquire(&ptable.lock);
-              p->state = SLEEPING;
-              release(&ptable.lock);
-              sched();
-            }
-          }
-        }
-        else if (i == SIGCONT)
-        {
-          myproc()->pending_sigs[i] = 0; // removing from the pending signals
-          continue;
-        }
-        else if (i == SIG_IGN)
-        {
-          myproc()->pending_sigs[i] = 0; // removing from the pending signals
-          continue;
-        }
-        else if (i == SIGKILL)
-        {
-          // kill the process
-          myproc()->pending_sigs[i] = 0; // removing from the pending signals
-        }
-      }
-      else if (myproc()->user_handler == 1)
-      {
-        user_handler(myproc(), i);
-      }
-    }
-  }
+	int ander = (1<<position);
+	int result = ander & mask;
+
+	if(result == ander)
+	{
+		return 1;
+	}
+	return 0;
 }
 
-//sigret function
-int
-sigret(void){
- struct proc *curr_p = myproc();
- //restore the oldtrapframe
- memmove((void *)curr_p->tf, (void *)curr_p->backup_tf, sizeof(struct trapframe));
- return 0;
+int sigprocmask(int sigmask){
+  int oldmask = myproc()->mask;
+  myproc()->mask = sigmask;
+  for(int i = 0; i < NSIGS; i++){
+    if(check_bit(sigmask,i)){
+      myproc()->sig_mask[i] = 1;
+    }
+  }
+  myproc()->sig_mask[SIGSTOP] =0;
+  myproc()->sig_mask[SIGKILL] =0;
+
+  return oldmask;
 }
 
 void
@@ -681,8 +633,77 @@ user_handler(struct proc *curr_p, int sig_no)
  return;
 }
 
-void
-handle_pending(void)
+
+void signal_handler()
 {
-  signal_handler();
+  for (int i = 0; i < NSIGS; i++)
+  {
+    if (myproc()->pending_sigs[i] == 1 && myproc()->sig_mask[i]==0)
+    {
+      if (myproc()->sig_handler[i] == (void *)SIG_DFL)
+      {
+        myproc()->pending_sigs[i] = 0; // removing from the pending signals
+        if (i == SIGSTOP)
+        {
+          myproc()->pending_sigs[i] = 0; // removing from the pending signals
+          myproc()->is_proc_stop = 1;
+          // check for any handler is set as SIGKILL or SIGCONT
+          if (myproc()->is_proc_stop == 1)
+          {
+            for (int k = 0; k < NSIGS; k++)
+            {
+              if ((myproc()->pending_sigs[k] == 1) && (k == SIGCONT))
+              {
+                myproc()->is_proc_stop = 0;    // making process continue from stop
+                myproc()->pending_sigs[k] = 0; // removing from the pending signals
+                return;
+              }
+              if ((myproc()->pending_sigs[k] == 1) && (k == SIGKILL))
+              {
+                // kill the process here
+                myproc()->pending_sigs[k] = 0; // removing from the pending signals
+                return;
+              }
+            }
+	    // if proc is pause make that process to sleep
+            if (myproc()->is_proc_stop == 1)
+            {
+              struct proc *p = myproc();
+              acquire(&ptable.lock);
+              p->state = SLEEPING;
+              sched();
+	      release(&ptable.lock);
+            }
+          }
+        }
+        else if (i == SIGCONT)
+        {
+          myproc()->pending_sigs[i] = 0; // removing from the pending signals
+          continue;
+        }
+        else if (i == SIG_IGN )
+        {
+          myproc()->pending_sigs[i] = 0; // removing from the pending signals
+          continue;
+        }
+      }
+      else
+      { // check if user handler is mask or not and call user handler
+              myproc()->pending_sigs[i] =0;
+	      if(myproc()->sig_mask[i] != 1){
+	        user_handler(myproc(), i);
+	      }
+	 
+      }
+    }
+  }
+}
+
+//sigret function
+int
+sigret(void){
+ struct proc *curr_p = myproc();
+ //restore the oldtrapframe
+ memmove((void *)curr_p->tf, (void *)curr_p->backup_tf, sizeof(struct trapframe));
+ return 0;
 }

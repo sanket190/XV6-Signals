@@ -121,6 +121,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void            signal_handler(void);
+int             sigprocmask(int sigmask);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
