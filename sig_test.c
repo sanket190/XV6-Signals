@@ -2,6 +2,7 @@
 #include "stat.h"
 #include "user.h"
 #include "signal.h"
+#include "param.h"
 #include <stddef.h>
 
 void fun1(int sig_no)
@@ -10,7 +11,7 @@ void fun1(int sig_no)
 }
 void fun2(int sig_no)
 {
-	printf(1, "Function2 is working %d\n", sig_no);
+	printf(1, "\nfunction2 is working -->  %d\n", sig_no);
 }
 
 void sigaction_test()
@@ -89,13 +90,67 @@ void default_handler_test()
 		kill(pid, 9);
 		wait();
 		printf(1, "default handler OK\n");
-		exit();
+                exit();
 	}
+}
+
+void sigkill_test()
+{
+  int pid;
+  printf(1,"sigkill and sigmask test\n");
+  pid = fork();   
+  if(pid == 0){
+    struct sigaction act = {fun1, 1 << SIGKILL};
+    struct sigaction act2 = {fun2, 1 << SIGKILL};
+    // Trying to mask SIGKILL
+    sigaction(4, &act, NULL);
+    sigaction(5, &act2, NULL);
+    int mask_4_kill = (1<<4) | (1<<SIGKILL);
+    sigprocmask(mask_4_kill);
+    printf(1, "sending kill signal OK\n");
+    kill(getpid(), 4);
+    kill(getpid(), 5);
+    kill(getpid(), SIGKILL);
+    sleep(5);
+    printf(1, "sigkill-sigmask FAILED: SIGKILL can't be blocked!\n");
+  }
+  else
+  {
+    wait();
+  }
+}
+
+void sigkill_sigaction_test()
+{
+  int pid;
+  printf(1,"sigkill sigaction test\n");
+  pid = fork();
+  if(pid == 0){
+    int num = 2;
+    struct sigaction act = {fun1, 0};
+    struct sigaction act2 = {fun2, 0};
+    if((sigaction(SIGSTOP, &act, NULL)) < 0)
+      num--;
+    if((sigaction(SIGKILL, &act2, NULL)) < 0)
+      num--;
+    if(!num){
+      printf(1,"sigkill sigaction OK\n");
+    }
+    else{
+      printf(1,"sigkill sigaction FAILED\n");
+    }
+  }
+  else
+  {
+    wait();
+  }
 }
 
 int main()
 {
 	sigaction_test();
 	sigmask_test();
+	sigkill_test();
+        sigkill_sigaction_test();
 	default_handler_test();
 }
