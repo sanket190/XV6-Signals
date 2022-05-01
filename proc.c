@@ -53,6 +53,9 @@ mycpu(void)
   panic("unknown apicid\n");
 }
 
+void *p;
+int paused = 0;
+
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
 struct proc*
@@ -96,7 +99,6 @@ found:
     p->sig_handler[i] = (void *)SIG_DFL;
 
   p->is_proc_stop = 0; // process is not stopped
-
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -693,7 +695,6 @@ void signal_handler()
 	      if(myproc()->sig_mask[i] != 1){
 	        user_handler(myproc(), i);
 	      }
-	 
       }
     }
   }
@@ -706,4 +707,14 @@ sigret(void){
  //restore the oldtrapframe
  memmove((void *)curr_p->tf, (void *)curr_p->backup_tf, sizeof(struct trapframe));
  return 0;
+}
+
+int
+pause()
+{
+  paused = 1;
+  acquire(&ptable.lock);
+  sleep(p, &ptable.lock);
+  release(&ptable.lock);
+  return -1;
 }

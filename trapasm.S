@@ -41,4 +41,3 @@ start_sigret:
 	int $T_SYSCALL;
 	ret
 end_sigret:
-

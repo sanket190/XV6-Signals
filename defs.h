@@ -189,11 +189,10 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
-
 void            start_sigret(void);
 void            end_sigret(void);
 int             sigaction(int sig_no, struct sigaction *new_act,struct sigaction *old_act);
 int             sigret(void);
-
+int pause();
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
